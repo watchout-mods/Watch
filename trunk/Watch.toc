@@ -1,0 +1,16 @@
+## Interface: 30100
+## Title: !Watch
+## Version: @project-version@
+## Notes: Watches a (global) variable
+## Author: watchout @ Curseforge
+## SavedVariablesPerCharacter: SavedWatchers
+## Dependencies: 
+## OptionalDeps: 
+## LoadManagers: AddonLoader, LoadIT
+## X-Keywords: development
+## X-LoadOn-Always: delayed
+
+Watch.xml
+Watch.lua
+
+Test.xml
