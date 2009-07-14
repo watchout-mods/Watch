@@ -1,0 +1,145 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\FrameXML\UI.xsd">
+	<Frame name="WatchFrameDropDownMenu" inherits="UIDropDownMenuTemplate"/>
+
+	<Button name="WatchFrameTemplate" virtual="true" enableMouse="true"
+			resizable="true" movable="true" clampedToScreen="true">
+		<TitleRegion>
+			<Anchors>
+				<Anchor point="TOPLEFT">
+					<Offset x="0" y="0" />
+				</Anchor>
+				<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
+					<Offset x="0" y="-20" />
+				</Anchor>
+			</Anchors>
+		</TitleRegion>
+		<Anchors>
+			<Anchor point="CENTER" />
+		</Anchors>
+		<Size>
+			<AbsDimension x="200" y="200" />
+		</Size>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture setAllPoints="true">
+					<Color a=".75" r="0" g="0" b="0"/>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER">
+				<Texture>
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset x="0" y="0" />
+						</Anchor>
+						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
+							<Offset x="0" y="-20" />
+						</Anchor>
+					</Anchors>
+					<Color a=".5" r=".5" g="0" b="0"/>
+				</Texture>
+			</Layer>
+			<Layer level="ARTWORK">
+				<FontString inherits="GameFontNormal">
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset x="0" y="0" />
+						</Anchor>
+						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
+							<Offset x="0" y="-20" />
+						</Anchor>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<ScrollFrame setAllPoints="true">
+				<Anchors>
+					<Anchor point="TOPLEFT">
+						<Offset x="0" y="-20" />
+					</Anchor>
+					<Anchor point="BOTTOMRIGHT">
+						<Offset x="0" y="0" />
+					</Anchor>
+				</Anchors>
+				<ScrollChild>
+					<SimpleHTML>
+						<Anchors>
+							<Anchor point="TOPLEFT" />
+							<Anchor point="TOPRIGHT" />
+						</Anchors>
+						<Size>
+							<AbsDimension y="200" />
+						</Size>
+						<FontString inherits="GameFontNormal" />
+						<Scripts>
+							<OnLoad>
+								self:GetParent():GetParent().SimpleHTML = self;
+								self:SetWidth(self:GetParent():GetWidth());
+								self:SetText("");
+							</OnLoad>
+							<OnSizeChanged>
+								if self:GetRegions() then
+									self:SetText(self:GetRegions():GetText());
+								end
+							</OnSizeChanged>
+						</Scripts>
+					</SimpleHTML>
+				</ScrollChild>
+				<Scripts>
+					<OnMouseWheel>
+						if self:GetScrollChild() then
+							local pos = self:GetVerticalScroll();
+							local sch = self:GetScrollChild():GetRegions():GetHeight();
+							local sfh = self:GetHeight();
+							pos = pos - 20*delta;
+							
+							if pos > sch-sfh then
+								pos = sch-sfh;
+							end
+							if 0 > pos then
+								pos = 0;
+							end
+							
+							self:SetVerticalScroll(pos);
+						end
+					</OnMouseWheel>
+					<OnSizeChanged>
+						if self:GetScrollChild() then
+							self:GetScrollChild():SetWidth(arg1);
+						end
+					</OnSizeChanged>
+				</Scripts>
+			</ScrollFrame>
+			<Frame enableMouse="true">
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT">
+						<Offset x="0" y="0" />
+					</Anchor>
+				</Anchors>
+				<Size>
+					<AbsDimension x="20" y="20" />
+				</Size>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture setAllPoints="true">
+							<Color a=".5" r="0" g="0" b="1"/>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnMouseDown>
+						self:GetParent():StartSizing("BOTTOMRIGHT");
+					</OnMouseDown>
+					<OnMouseUp>
+						self:GetParent():StopMovingOrSizing();
+					</OnMouseUp>
+				</Scripts>
+			</Frame>
+		</Frames>
+	</Button>
+
+</Ui>
+
