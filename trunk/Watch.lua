@@ -196,7 +196,7 @@ local toColorString = function(value)
 		return "|cFF00FF00"..tostring(value).."|r";
 	elseif vt == "boolean" and not value then
 		return "|cFFFF0000"..tostring(value).."|r";
-	elseif not vt then
+	elseif not value then
 		return "|cFFFF0000"..tostring(value).."|r";
 	else
 		return ""..tostring(value).."";
@@ -249,8 +249,6 @@ local dropdownconfig = {
 		func = function(self)
 			local f = (select(2, self:GetParent():GetPoint()));
 			unwatch(f.id);
-			watchers[self] = nil;
-			tinsert(framebuffer, self);
 		end, -- function. This is the function that will fire when you click on this menu item.
 	},
 	{
@@ -313,11 +311,13 @@ local WatchFrame_onActivate = function(self, inputstring, input)
 	self.elapsed = 0;
 	self.Watch = input;
 	self.TitleRegion = select(3, self:GetRegions());
+	print(self.TitleRegion:GetObjectType(), self.TitleRegion.SetText);
 	self.TitleRegion:SetText(inputstring);
 	self:SetScript("OnEvent", WatchFrame_onEvent);
 	self:SetScript("OnUpdate", WatchFrame_onUpdate);
 	self:SetScript("OnClick", WatchFrame_onClick);
 	self:RegisterForClicks("RightButtonUp");
+	self:Show();
 	WatchFrame_onEvent(self, "UPDATE");
 end
 
@@ -339,6 +339,7 @@ watch = function(what)
 end
 
 unwatch = function(id)
+	id = tonumber(id);
 	if id and watchers[id] then
 		tinsert(framebuffer, watchers[id]);
 		watchers[id]:Hide();
@@ -349,8 +350,12 @@ unwatch = function(id)
 end
 
 rewatch = function()
-	for k,v in pairs(SavedWatchers) do 
-		local p = SavedWatchersPos[k];
+	local sw = SavedWatchers;
+	local swp = SavedWatchersPos;
+	SavedWatchers = {};
+	SavedWatchersPos = {};
+	for k,v in pairs(sw) do 
+		local p = swp[k];
 		local f = watch(v);
 		if p then
 			f:ClearAllPoints();
