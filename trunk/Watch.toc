@@ -3,7 +3,7 @@
 ## Version: @project-version@
 ## Notes: Watches a (global) variable
 ## Author: watchout @ Curseforge
-## SavedVariablesPerCharacter: SavedWatchers
+## SavedVariablesPerCharacter: SavedWatchers, SavedWatchersPos
 ## Dependencies: 
 ## OptionalDeps: 
 ## LoadManagers: AddonLoader, LoadIT
