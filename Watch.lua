@@ -174,6 +174,7 @@ local safefuncs = {
 	["NumLines"] = true,
 }
 SavedWatchers = {};
+SavedWatchersPos = {};
 local framebuffer = {};
 local watchers = {};
 gw = watchers;
@@ -188,7 +189,7 @@ local toColorString = function(value)
 	elseif vt == "function" then
 		return ""..tostring(value).."";
 	elseif vt == "table" and type(rawget(value, 0)) == "userdata" and type(value.GetObjectType) == "function" then
-		return "<"..value:GetObjectType()..":"..(value:GetName() or "(anon)")..">";
+		return value:GetObjectType()..":"..(value:GetName() or "(anon)");
 	elseif vt == "table" then
 		return ""..tostring(value).."";
 	elseif vt == "boolean" and value then
@@ -290,6 +291,8 @@ local WatchFrame_onEvent = function(self, event)
 	else
 		self.SimpleHTML:SetText("<html><body><p>"..toFancyString(value, "list").."</p></body></html>");
 	end
+	local p = SavedWatchersPos[self.id];
+	p[1], p[2], p[3], p[4] = self:GetRect();
 end
 
 local WatchFrame_onUpdate = function(self, elapsed)
@@ -325,10 +328,13 @@ watch = function(what)
 		local frame = tremove(framebuffer) or CreateFrame("Button", nil, UIParent, "WatchFrameTemplate");
 		watchers[id] = frame;
 		frame.id = id;
-		WatchFrame_onActivate(frame, what, load);
 		-- save watchers
 		SavedWatchers[id] = what;
+		SavedWatchersPos[id] = {};
+		-- OnLoad?
+		WatchFrame_onActivate(frame, what, load);
 		id = id+1;
+		return frame;
 	end
 end
 
@@ -344,7 +350,14 @@ end
 
 rewatch = function()
 	for k,v in pairs(SavedWatchers) do 
-		watch(v);
+		local p = SavedWatchersPos[k];
+		local f = watch(v);
+		if p then
+			f:ClearAllPoints();
+			f:SetPoint("BOTTOMLEFT", p[1], p[2])
+			f:SetWidth(p[3]);
+			f:SetHeight(p[4]);
+		end
 	end
 end
 
