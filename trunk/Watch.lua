@@ -318,6 +318,7 @@ local WatchFrame_onActivate = function(self, inputstring, input)
 	self:SetScript("OnClick", WatchFrame_onClick);
 	self:RegisterForClicks("RightButtonUp");
 	self:Show();
+	self:SetToplevel(true);
 	WatchFrame_onEvent(self, "UPDATE");
 end
 
