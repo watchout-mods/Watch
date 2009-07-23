@@ -294,24 +294,23 @@ local WatchFrame_onEvent = function(self, event)
 end
 
 local WatchFrame_onUpdate = function(self, elapsed)
-	if self.elapsed > 1.5 then
+	if self.elapsed > .9 then
 		self.elapsed = 0;
 		WatchFrame_onEvent(self, "UPDATE");
 	end
 	
+	print(elapsed);
 	self.elapsed = self.elapsed + elapsed;
 end
 
 local WatchFrame_onClick = function(self)
 	EasyMenu(dropdownconfig, WatchFrameDropDownMenu, self, 0, -10, "MENU", 10);
-	self:Raise();
 end
 
 local WatchFrame_onActivate = function(self, inputstring, input)
 	self.elapsed = 0;
 	self.Watch = input;
 	self.TitleRegion = select(3, self:GetRegions());
-	print(self.TitleRegion:GetObjectType(), self.TitleRegion.SetText);
 	self.TitleRegion:SetText(inputstring);
 	self:SetScript("OnEvent", WatchFrame_onEvent);
 	self:SetScript("OnUpdate", WatchFrame_onUpdate);
