@@ -6,16 +6,6 @@
 
 	<Button name="WatchFrameTemplate" virtual="true" enableMouse="true"
 			resizable="true" movable="true" clampedToScreen="true">
-		<TitleRegion>
-			<Anchors>
-				<Anchor point="TOPLEFT">
-					<Offset x="0" y="0" />
-				</Anchor>
-				<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
-					<Offset x="0" y="-20" />
-				</Anchor>
-			</Anchors>
-		</TitleRegion>
 		<Anchors>
 			<Anchor point="CENTER" />
 		</Anchors>
@@ -61,11 +51,11 @@
 						<Offset x="0" y="-20" />
 					</Anchor>
 					<Anchor point="BOTTOMRIGHT">
-						<Offset x="0" y="0" />
+						<Offset x="0" y="15" />
 					</Anchor>
 				</Anchors>
 				<ScrollChild>
-					<SimpleHTML>
+					<SimpleHTML enableMouse="true">
 						<Anchors>
 							<Anchor point="TOPLEFT" />
 							<Anchor point="TOPRIGHT" />
@@ -89,6 +79,9 @@
 					</SimpleHTML>
 				</ScrollChild>
 				<Scripts>
+					<OnLoad>
+						self:GetParent().Scrollframe = self;
+					</OnLoad>
 					<OnMouseWheel>
 						if self:GetScrollChild() then
 							local pos = self:GetVerticalScroll();
@@ -120,12 +113,12 @@
 					</Anchor>
 				</Anchors>
 				<Size>
-					<AbsDimension x="20" y="20" />
+					<AbsDimension x="15" y="15" />
 				</Size>
 				<Layers>
 					<Layer level="BACKGROUND">
 						<Texture setAllPoints="true">
-							<Color a=".5" r="0" g="0" b="1"/>
+							<Color a="1" r="1" g="1" b="1"/>
 						</Texture>
 					</Layer>
 				</Layers>
