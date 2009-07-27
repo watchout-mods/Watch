@@ -1,3 +1,9 @@
+--[[ TODO:
+	* Watch changes to return values (color changed items red)
+	* Make table indexes click-able, clicking a table index opens a new watcher
+	  watching for this
+]]
+
 local safefuncs = {
 	["AtBottom"] = true,
 	["AtTop"] = true,
@@ -203,7 +209,24 @@ local toColorString = function(value)
 	end
 end
 
-toFancyString = function(r, rt, nodescend)
+local toKeyLink = function(watchstring, tbl, key, issafe)
+	watchstring = watchstring or "";
+	watchstring:gsub("\"", "'");
+	
+	if issafe and type(tbl[key]) == "function" then
+		watchstring = watchstring..":"..key.."()";
+	else
+		if type(key) == "string" then
+			watchstring = watchstring.."['"..key.."']";
+		else
+			watchstring = watchstring.."["..key.."]";
+		end
+	end
+	
+	return "<a href=\""..watchstring.."\">"..toColorString(key).."</a>";
+end
+
+toFancyString = function(watchstring, r, rt, nodescend)
 	local rt = rt or type(r);
 	local t = "";
 	if rt == "list" and #r <= 1 then
@@ -213,19 +236,20 @@ toFancyString = function(r, rt, nodescend)
 	if rt == "table" and not nodescend then
 		local tbl = {};
 		for k,v in pairs(r) do
-			tinsert(tbl, "  ["..toColorString(k).."] = "..toColorString(v));
+			tinsert(tbl, "  ["..toKeyLink(watchstring, r, k).."] = "..toColorString(v));
 		end
 		-- ui object?
 		if type(rawget(r, 0)) == "userdata" and type(r.GetObjectType) == "function" then
 			for k,v in pairs(getmetatable(r).__index) do
 				local rv;
 				if type(v) == "function" and safefuncs[k] then
-					rv = toFancyString({ v(r) }, "list", true);
+					rv = toFancyString(watchstring, { v(r) }, "list", true);
 					--print(v(r));
+					tinsert(tbl,"  ["..toKeyLink(watchstring,r,k,true).."] = "..rv);
 				else
 					rv = toColorString(v);
+					tinsert(tbl,"  ["..toKeyLink(watchstring,r,k).."] = "..rv);
 				end
-				tinsert(tbl, "  ["..toColorString(k).."] = "..rv);
 			end
 		end
 		sort(tbl);
@@ -253,26 +277,33 @@ local dropdownconfig = {
 	},
 	{
 		text = "",
+		disabled = true,
 	},
 	{
-		text = "set interval",
+		text = "Show safe items only",
+		disabled = true,
 		func = function(...) return; end,
 	},
 	{
-		text = "disable onUpdate refresh",
+		text = "set interval",
+		disabled = true,
 		func = function(...) return; end,
 	},
 	{
 		text = "set events",
+		disabled = true,
 		func = function(...) return; end,
 	},
 	{
-		text = "update watcher",
+		text = "Automatic Refresh",
+		disabled = true,
+		checked = true,
+		func = function(...) return; end,
+	},
+	{
+		text = "Update",
+		disabled = true,
 		func = function(self)
-			local f = (select(2, self:GetParent():GetPoint()));
-
-			local frame = CreateFrame("Button", nil, UIParent, "WatchFrameTemplate");
-			frame.SimpleHTML:SetText(toFancyString(v));
 		end,
 	},
 
@@ -282,15 +313,21 @@ local watchcase = [[
 	return {%s};
 ]];
 
+local WatchFrame_savePosition = function(self)
+	local p = SavedWatchersPos[self.id];
+	p[1], p[2], p[3], p[4] = self:GetRect();
+end
+
 local WatchFrame_onEvent = function(self, event)
 	local ok, value = pcall(self.Watch, self);
 	if not ok then
 		self.SimpleHTML:SetText("|cFFFF0000ERROR"..value.."|r");
 	else
-		self.SimpleHTML:SetText("<html><body><p>"..toFancyString(value, "list").."</p></body></html>");
+		self.SimpleHTML:SetText("<html><body><p>"..
+			toFancyString(self.WatchString, value, "list")..
+			"</p></body></html>"
+		);
 	end
-	local p = SavedWatchersPos[self.id];
-	p[1], p[2], p[3], p[4] = self:GetRect();
 end
 
 local WatchFrame_onUpdate = function(self, elapsed)
@@ -299,35 +336,80 @@ local WatchFrame_onUpdate = function(self, elapsed)
 		WatchFrame_onEvent(self, "UPDATE");
 	end
 	
-	print(elapsed);
+	--print(elapsed);
 	self.elapsed = self.elapsed + elapsed;
 end
 
-local WatchFrame_onClick = function(self)
-	EasyMenu(dropdownconfig, WatchFrameDropDownMenu, self, 0, -10, "MENU", 10);
+local WatchFrame_onMouseDown = function(self, button)
+	if button ~= "RightButton" then
+		self.IsDragging = true;
+		self:StartMoving();
+	end
+end
+
+local WatchFrame_onMouseUp = function(self, button)
+	if self.IsDragging then
+		self:StopMovingOrSizing();
+		self.IsDragging = false;
+		self:savePosition();
+	elseif button == "RightButton" then
+		EasyMenu(dropdownconfig, WatchFrameDropDownMenu, self, 0, -10, "MENU", 10);
+	end
+end
+
+local WatchFrameScrollframe_onMouseDown = function(self, button)
+	if IsControlKeyDown() then
+		WatchFrame_onMouseDown(self:GetParent(), button);
+	end
+end
+
+local WatchFrameScrollframe_onMouseUp = function(self, button)
+	WatchFrame_onMouseUp(self:GetParent(), button);
+end
+
+local WatchFrameSimpleHTML_onMouseDown = function(self, button)
+	if IsControlKeyDown() then
+		WatchFrame_onMouseDown(self:GetParent():GetParent(), button);
+	end
+end
+
+local WatchFrameSimpleHTML_onMouseUp = function(self, button)
+	WatchFrame_onMouseUp(self:GetParent():GetParent(), button);
+end
+
+local WatchFrameSimpleHTML_onHyperlink = function(self, watchstr)
+	print("WatchFrame_onHyperlink", watchstr);
+	watch(watchstr);
 end
 
 local WatchFrame_onActivate = function(self, inputstring, input)
 	self.elapsed = 0;
 	self.Watch = input;
+	self.WatchString = inputstring;
 	self.TitleRegion = select(3, self:GetRegions());
-	self.TitleRegion:SetText(inputstring);
+	self.TitleRegion:SetText("(("..self.id..")) "..inputstring);
 	self:SetScript("OnEvent", WatchFrame_onEvent);
 	self:SetScript("OnUpdate", WatchFrame_onUpdate);
 	self:SetScript("OnClick", WatchFrame_onClick);
-	self:RegisterForClicks("RightButtonUp");
+	self:SetScript("OnMouseDown", WatchFrame_onMouseDown);
+	self:SetScript("OnMouseUp", WatchFrame_onMouseUp);
+	self.SimpleHTML:SetScript("OnHyperlinkClick", WatchFrameSimpleHTML_onHyperlink);
+	self.Scrollframe:SetScript("OnMouseDown", WatchFrameScrollframe_onMouseDown);
+	self.Scrollframe:SetScript("OnMouseUp",   WatchFrameScrollframe_onMouseUp);
+	self:RegisterForClicks("AnyUp", "AnyDown");
 	self:Show();
 	self:SetToplevel(true);
 	WatchFrame_onEvent(self, "UPDATE");
 end
 
 local id = 1;
-watch = function(what)
+watch = function(what, keyname)
 	if what then
 		local load = loadstring(watchcase:format(what), "Watched expression: '"..what.."'");
 		local frame = tremove(framebuffer) or CreateFrame("Button", nil, UIParent, "WatchFrameTemplate");
 		watchers[id] = frame;
 		frame.id = id;
+		frame.savePosition = WatchFrame_savePosition;
 		-- save watchers
 		SavedWatchers[id] = what;
 		SavedWatchersPos[id] = {};
@@ -357,11 +439,12 @@ rewatch = function()
 	for k,v in pairs(sw) do 
 		local p = swp[k];
 		local f = watch(v);
-		if p then
+		if p and #p > 0 then
 			f:ClearAllPoints();
 			f:SetPoint("BOTTOMLEFT", p[1], p[2])
 			f:SetWidth(p[3]);
 			f:SetHeight(p[4]);
+			f:savePosition();
 		end
 	end
 end
