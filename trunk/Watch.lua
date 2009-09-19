@@ -235,8 +235,9 @@ toFancyString = function(watchstring, r, rt, nodescend)
 	end
 	if rt == "table" and not nodescend then
 		local tbl = {};
+		-- the <!-- "..k.." --> part is for correct sorting
 		for k,v in pairs(r) do
-			tinsert(tbl, "  ["..toKeyLink(watchstring, r, k).."] = "..toColorString(v));
+			tinsert(tbl, "  <!-- "..k.." -->["..toKeyLink(watchstring, r, k).."] = "..toColorString(v));
 		end
 		-- ui object?
 		if type(rawget(r, 0)) == "userdata" and type(r.GetObjectType) == "function" then
@@ -245,10 +246,10 @@ toFancyString = function(watchstring, r, rt, nodescend)
 				if type(v) == "function" and safefuncs[k] then
 					rv = toFancyString(watchstring, { v(r) }, "list", true);
 					--print(v(r));
-					tinsert(tbl,"  ["..toKeyLink(watchstring,r,k,true).."] = "..rv);
+					tinsert(tbl,"  <!-- "..k.." -->["..toKeyLink(watchstring,r,k,true).."] = "..rv);
 				else
 					rv = toColorString(v);
-					tinsert(tbl,"  ["..toKeyLink(watchstring,r,k).."] = "..rv);
+					tinsert(tbl,"  <!-- "..k.." -->["..toKeyLink(watchstring,r,k).."] = "..rv);
 				end
 			end
 		end
