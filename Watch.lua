@@ -188,47 +188,43 @@ local watch, unwatch, rewatch, toFancyString;
 
 local toColorString = function(value)
 	local vt = type(value);
-	if vt == "string" then
-		return "|cFF007700\""..value.."\"|r";
+	local retval;
+	if vt == "table" and type(rawget(value, 0)) == "userdata" and type(value.GetObjectType) == "function" then
+		retval = value:GetObjectType()..":"..(value:GetName() or "(anon)");
+	elseif vt == "string" then
+		retval = "|cFF007700\""..value.."\"|r";
 	elseif vt == "number" then
-		return "|cFFFF00FF"..value.."|r";
+		retval = "|cFFFF00FF"..value.."|r";
 	elseif vt == "function" then
-		return ""..tostring(value).."";
-	elseif vt == "table" and type(rawget(value, 0)) == "userdata" and type(value.GetObjectType) == "function" then
-		return value:GetObjectType()..":"..(value:GetName() or "(anon)");
+		retval = ""..tostring(value).."";
 	elseif vt == "table" then
-		return ""..tostring(value).."";
+		retval = tostring(value);
 	elseif vt == "boolean" and value then
-		return "|cFF00FF00"..tostring(value).."|r";
+		retval = "|cFF00FF00"..tostring(value).."|r";
 	elseif vt == "boolean" and not value then
-		return "|cFFFF0000"..tostring(value).."|r";
+		retval = "|cFFFF0000"..tostring(value).."|r";
 	elseif not value then
-		return "|cFFFF0000"..tostring(value).."|r";
+		retval = "|cFFFF0000"..tostring(value).."|r";
 	else
-		return ""..tostring(value).."";
+		retval = ""..gsub(tostring(value), "-", " ").."";
 	end
+	
+	-- remove stuff we don't like so we don't break HTML
+	retval = gsub(retval, ">", "&gt;");
+	retval = gsub(retval, "<", "&lt;");
+	--retval = gsub(retval, "&", "&amp;");
+	return retval;
 end
 
-local toKeyLink = function(watchstring, tbl, key, issafe)
-	watchstring = watchstring or "";
-	watchstring:gsub("\"", "'");
-	
-	if issafe and type(tbl[key]) == "function" then
-		watchstring = watchstring..":"..key.."()";
-	else
-		if type(key) == "string" then
-			watchstring = watchstring.."['"..key.."']";
-		else
-			watchstring = watchstring.."["..key.."]";
-		end
-	end
-	
-	return "<a href=\""..watchstring.."\">"..toColorString(key).."</a>";
+local toKeyLink = function(key, keynum)
+	return "<a href=\""..keynum.."\">"..toColorString(key).."</a>";
 end
 
 toFancyString = function(watchstring, r, rt, nodescend)
 	local rt = rt or type(r);
 	local t = "";
+	local keys = {};
+	
 	if rt == "list" and #r <= 1 then
 		r = r[1];
 		rt = type(r);
@@ -237,19 +233,26 @@ toFancyString = function(watchstring, r, rt, nodescend)
 		local tbl = {};
 		-- the <!-- "..k.." --> part is for correct sorting
 		for k,v in pairs(r) do
-			tinsert(tbl, "  <!-- "..k.." -->["..toKeyLink(watchstring, r, k).."] = "..toColorString(v));
+			tinsert(keys, k);
+			tinsert(tbl, "  <!-- "..gsub(tostring(k), "-", " ").." -->["..toKeyLink(k, #keys).."] = "..toColorString(v));
 		end
 		-- ui object?
 		if type(rawget(r, 0)) == "userdata" and type(r.GetObjectType) == "function" then
+			tinsert(keys, k);
 			for k,v in pairs(getmetatable(r).__index) do
 				local rv;
+				-- make safe functions clickable and directly show their return value
 				if type(v) == "function" and safefuncs[k] then
 					rv = toFancyString(watchstring, { v(r) }, "list", true);
 					--print(v(r));
-					tinsert(tbl,"  <!-- "..k.." -->["..toKeyLink(watchstring,r,k,true).."] = "..rv);
+					tinsert(tbl,"  <!-- "..tostring(k).." -->["..toKeyLink(k,#keys).."] = "..rv);
+				-- make unsafe functions un-clickable
+				elseif type(v) == "function" then
+					rv = toColorString(v);
+					tinsert(tbl,"  <!-- "..tostring(k).." -->["..toColorString(k).."] = "..rv);
 				else
 					rv = toColorString(v);
-					tinsert(tbl,"  <!-- "..k.." -->["..toKeyLink(watchstring,r,k).."] = "..rv);
+					tinsert(tbl,"  <!-- "..tostring(k).." -->["..toKeyLink(k,#keys).."] = "..rv);
 				end
 			end
 		end
@@ -258,6 +261,7 @@ toFancyString = function(watchstring, r, rt, nodescend)
 	elseif rt == "list" then
 		local tbl = {};
 		for k,v in ipairs(r) do
+			tinsert(keys, k);
 			tinsert(tbl, toColorString(v));
 		end
 		t = t..strjoin(", ", unpack(tbl));
@@ -265,7 +269,7 @@ toFancyString = function(watchstring, r, rt, nodescend)
 		t = t..toColorString(r);
 	end
 	
-	return t;
+	return t, keys;
 end;
 
 local dropdownconfig = {
@@ -316,18 +320,19 @@ local watchcase = [[
 
 local WatchFrame_savePosition = function(self)
 	local p = SavedWatchersPos[self.id];
-	p[1], p[2], p[3], p[4] = self:GetRect();
+	if p then
+		p[1], p[2], p[3], p[4] = self:GetRect();
+	end
 end
 
 local WatchFrame_onEvent = function(self, event)
-	local ok, value = pcall(self.Watch, self);
+	local ok, value = pcall(self.Watch);
 	if not ok then
 		self.SimpleHTML:SetText("|cFFFF0000ERROR"..value.."|r");
 	else
-		self.SimpleHTML:SetText("<html><body><p>"..
-			toFancyString(self.WatchString, value, "list")..
-			"</p></body></html>"
-		);
+		local s, keys = toFancyString(self.WatchString, value, "list");
+		self.SimpleHTML:SetText("<html><body><p>"..s.."</p></body></html>");
+		self.LinkKeys = keys
 	end
 end
 
@@ -378,12 +383,24 @@ local WatchFrameSimpleHTML_onMouseUp = function(self, button)
 	WatchFrame_onMouseUp(self:GetParent():GetParent(), button);
 end
 
-local WatchFrameSimpleHTML_onHyperlink = function(self, watchstr)
-	print("WatchFrame_onHyperlink", watchstr);
-	watch(watchstr);
+local WatchFrameSimpleHTML_onHyperlink = function(self, key)
+	key = tonumber(key);
+	local top = self:GetParent():GetParent();
+	local keyval = top.LinkKeys[key];
+	--print("WatchFrame_onHyperlink", #top.LinkKeys, key, keyval);
+	if key and keyval then
+		local kt = type(keyval);
+		if kt == "string" then
+			watch(top.WatchString.."[\""..keyval.."\"]");
+		elseif kt == "number" then
+			watch(top.WatchString.."["..keyval.."]");
+		else
+			watch(top.Watch()[1][keyval], top.WatchString.."["..tostring(keyval).."]");
+		end
+	end
 end
 
-local WatchFrame_onActivate = function(self, inputstring, input)
+local WatchFrame_onActivate = function(self, input, inputstring)
 	self.elapsed = 0;
 	self.Watch = input;
 	self.WatchString = inputstring;
@@ -391,7 +408,7 @@ local WatchFrame_onActivate = function(self, inputstring, input)
 	self.TitleRegion:SetText("(("..self.id..")) "..inputstring);
 	self:SetScript("OnEvent", WatchFrame_onEvent);
 	self:SetScript("OnUpdate", WatchFrame_onUpdate);
-	self:SetScript("OnClick", WatchFrame_onClick);
+	self:SetScript("OnClick", nil);
 	self:SetScript("OnMouseDown", WatchFrame_onMouseDown);
 	self:SetScript("OnMouseUp", WatchFrame_onMouseUp);
 	self.SimpleHTML:SetScript("OnHyperlinkClick", WatchFrameSimpleHTML_onHyperlink);
@@ -405,23 +422,39 @@ end
 
 local id = 1;
 watch = function(what, keyname)
+	print(what, keyname);
 	if what then
-		local load = loadstring(watchcase:format(what), "Watched expression: '"..what.."'");
+		local load;
+		if type(what) == "string" then
+			load = loadstring(watchcase:format(what), "Watched expression: '"..what.."'");
+			keyname = what;
+		else
+			load = function() return {what} end;
+			keyname = keyname or "(unknown)";
+		end
 		local frame = tremove(framebuffer) or CreateFrame("Button", nil, UIParent, "WatchFrameTemplate");
 		watchers[id] = frame;
 		frame.id = id;
 		frame.savePosition = WatchFrame_savePosition;
 		-- save watchers
-		SavedWatchers[id] = what;
-		SavedWatchersPos[id] = {};
+		if type(what) == "string" then -- only if watching a string - for now
+			SavedWatchers[id] = what;
+			SavedWatchersPos[id] = {};
+		end
 		-- OnLoad?
-		WatchFrame_onActivate(frame, what, load);
+		WatchFrame_onActivate(frame, load, keyname);
 		id = id+1;
 		return frame;
 	end
 end
 
 unwatch = function(id)
+	if strmatch(id, "%s*ALL%s*") then
+		for k,v in pairs(watchers) do
+			unwatch(k);
+		end
+		return;
+	end
 	id = tonumber(id);
 	if id and watchers[id] then
 		tinsert(framebuffer, watchers[id]);
