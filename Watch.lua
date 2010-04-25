@@ -234,12 +234,12 @@ toFancyString = function(watchstring, r, rt, nodescend)
 		-- the <!-- "..k.." --> part is for correct sorting
 		for k,v in pairs(r) do
 			tinsert(keys, k);
-			tinsert(tbl, "  <!-- "..gsub(tostring(k), "-", " ").." -->["..toKeyLink(k, #keys).."] = "..toColorString(v));
+			tinsert(tbl, "  <!-- "..tostring(k).." -->["..toKeyLink(k, #keys).."] = "..toColorString(v));
 		end
 		-- ui object?
 		if type(rawget(r, 0)) == "userdata" and type(r.GetObjectType) == "function" then
-			tinsert(keys, k);
 			for k,v in pairs(getmetatable(r).__index) do
+				tinsert(keys, k);
 				local rv;
 				-- make safe functions clickable and directly show their return value
 				if type(v) == "function" and safefuncs[k] then
@@ -359,7 +359,7 @@ local WatchFrame_onMouseUp = function(self, button)
 		self.IsDragging = false;
 		self:savePosition();
 	elseif button == "RightButton" then
-		EasyMenu(dropdownconfig, WatchFrameDropDownMenu, self, 0, -10, "MENU", 10);
+		EasyMenu(dropdownconfig, WatchFrameDropDownMenu, "cursor", 0, -10, "MENU", 10);
 	end
 end
 
@@ -400,10 +400,15 @@ local WatchFrameSimpleHTML_onHyperlink = function(self, key)
 	end
 end
 
+local WatchFrame_unwatch = function(self)
+	unwatch(self.id);
+end
+
 local WatchFrame_onActivate = function(self, input, inputstring)
 	self.elapsed = 0;
 	self.Watch = input;
 	self.WatchString = inputstring;
+	self.Unwatch = WatchFrame_unwatch;
 	self.TitleRegion = select(3, self:GetRegions());
 	self.TitleRegion:SetText("(("..self.id..")) "..inputstring);
 	self:SetScript("OnEvent", WatchFrame_onEvent);
