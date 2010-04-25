@@ -13,19 +13,27 @@
 			<AbsDimension x="200" y="200" />
 		</Size>
 		<Layers>
-			<Layer level="BACKGROUND">
-				<Texture setAllPoints="true">
-					<Color a=".75" r="0" g="0" b="0"/>
+			<Layer level="BORDER">
+				<Texture>
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset x="4" y="-4" />
+						</Anchor>
+						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
+							<Offset x="-4" y="-20" />
+						</Anchor>
+					</Anchors>
+					<Color a=".5" r=".5" g="0" b="0"/>
 				</Texture>
 			</Layer>
 			<Layer level="BORDER">
 				<Texture>
 					<Anchors>
-						<Anchor point="TOPLEFT">
-							<Offset x="0" y="0" />
+						<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT">
+							<Offset x="4" y="15" />
 						</Anchor>
-						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
-							<Offset x="0" y="-20" />
+						<Anchor point="BOTTOMRIGHT">
+							<Offset x="-4" y="4" />
 						</Anchor>
 					</Anchors>
 					<Color a=".5" r=".5" g="0" b="0"/>
@@ -48,21 +56,21 @@
 			<ScrollFrame setAllPoints="true">
 				<Anchors>
 					<Anchor point="TOPLEFT">
-						<Offset x="0" y="-20" />
+						<Offset x="5" y="-20" />
 					</Anchor>
 					<Anchor point="BOTTOMRIGHT">
-						<Offset x="0" y="15" />
+						<Offset x="-5" y="15" />
 					</Anchor>
 				</Anchors>
 				<ScrollChild>
 					<SimpleHTML enableMouse="true">
+						<Size>
+							<AbsDimension y="200" x="200" />
+						</Size>
 						<Anchors>
 							<Anchor point="TOPLEFT" />
 							<Anchor point="TOPRIGHT" />
 						</Anchors>
-						<Size>
-							<AbsDimension y="200" />
-						</Size>
 						<FontString inherits="GameFontNormal" />
 						<Scripts>
 							<OnLoad>
@@ -117,8 +125,8 @@
 				</Size>
 				<Layers>
 					<Layer level="BACKGROUND">
-						<Texture setAllPoints="true">
-							<Color a="1" r="1" g="1" b="1"/>
+						<Texture setAllPoints="true" alphaMode="ADD" file="Interface\AddOns\Watch\Grabber">
+							<Color a="1" r="0" g="0.9" b=".1"/>
 						</Texture>
 					</Layer>
 				</Layers>
@@ -131,7 +139,44 @@
 					</OnMouseUp>
 				</Scripts>
 			</Frame>
+			<Button enableMouse="true">
+				<Anchors>
+					<Anchor point="TOPRIGHT">
+						<Offset x="1" y="1" />
+					</Anchor>
+				</Anchors>
+				<Size>
+					<AbsDimension x="28" y="28" />
+				</Size>
+				<Scripts>
+					<OnClick>
+						self:GetParent():Unwatch();
+					</OnClick>
+				</Scripts>
+				<NormalTexture file="Interface\BUTTONS\CancelButton-Up"/>
+				<PushedTexture file="Interface\BUTTONS\CancelButton-Down"/>
+				<HighlightTexture file="Interface\BUTTONS\CancelButton-Highlight" alphaMode="ADD"/>
+			</Button>
 		</Frames>
+		<Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
+			<EdgeSize>
+				<AbsValue val="16"/>
+			</EdgeSize>
+			<TileSize>
+				<AbsValue val="16"/>
+			</TileSize>
+			<BackgroundInsets>
+				<AbsInset left="5" right="5" top="5" bottom="5"/>
+			</BackgroundInsets>
+		</Backdrop>
+		<Scripts>
+			<OnLoad>
+				local c = TOOLTIP_DEFAULT_COLOR;
+				self:SetBackdropBorderColor(c.r, c.g, c.b);
+				c = TOOLTIP_DEFAULT_BACKGROUND_COLOR;
+				self:SetBackdropColor(c.r, c.g, c.b);
+			</OnLoad>
+		</Scripts>
 	</Button>
 
 </Ui>
