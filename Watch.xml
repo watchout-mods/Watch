@@ -43,10 +43,20 @@
 				<FontString inherits="GameFontNormal">
 					<Anchors>
 						<Anchor point="TOPLEFT">
-							<Offset x="0" y="0" />
+							<Offset x="40" y="0" />
 						</Anchor>
 						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
-							<Offset x="0" y="-20" />
+							<Offset x="-15" y="-20" />
+						</Anchor>
+					</Anchors>
+				</FontString>
+				<FontString inherits="GameFontNormal">
+					<Anchors>
+						<Anchor point="TOPLEFT">
+							<Offset x="0" y="0" />
+						</Anchor>
+						<Anchor point="BOTTOMRIGHT" relativePoint="TOPLEFT">
+							<Offset x="40" y="-20" />
 						</Anchor>
 					</Anchors>
 				</FontString>

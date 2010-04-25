@@ -185,6 +185,7 @@ local framebuffer = {};
 local watchers = {};
 gw = watchers;
 local watch, unwatch, rewatch, toFancyString;
+local updateframe;
 
 local toColorString = function(value)
 	local vt = type(value);
@@ -326,6 +327,7 @@ local WatchFrame_savePosition = function(self)
 end
 
 local WatchFrame_onEvent = function(self, event)
+	--print("Watch", "update");
 	local ok, value = pcall(self.Watch);
 	if not ok then
 		self.SimpleHTML:SetText("|cFFFF0000ERROR"..value.."|r");
@@ -410,9 +412,11 @@ local WatchFrame_onActivate = function(self, input, inputstring)
 	self.WatchString = inputstring;
 	self.Unwatch = WatchFrame_unwatch;
 	self.TitleRegion = select(3, self:GetRegions());
-	self.TitleRegion:SetText("(("..self.id..")) "..inputstring);
+	self.TitleRegion:SetText(inputstring);
+	self.TitleRegionID = select(4, self:GetRegions());
+	self.TitleRegionID:SetText(tostring(self.id));
 	self:SetScript("OnEvent", WatchFrame_onEvent);
-	self:SetScript("OnUpdate", WatchFrame_onUpdate);
+	--self:SetScript("OnUpdate", WatchFrame_onUpdate);
 	self:SetScript("OnClick", nil);
 	self:SetScript("OnMouseDown", WatchFrame_onMouseDown);
 	self:SetScript("OnMouseUp", WatchFrame_onMouseUp);
@@ -425,7 +429,6 @@ local WatchFrame_onActivate = function(self, input, inputstring)
 	WatchFrame_onEvent(self, "UPDATE");
 end
 
-local id = 1;
 watch = function(what, keyname)
 	print(what, keyname);
 	if what then
@@ -438,7 +441,8 @@ watch = function(what, keyname)
 			keyname = keyname or "(unknown)";
 		end
 		local frame = tremove(framebuffer) or CreateFrame("Button", nil, UIParent, "WatchFrameTemplate");
-		watchers[id] = frame;
+		tinsert(watchers, frame);
+		local id = #watchers;
 		frame.id = id;
 		frame.savePosition = WatchFrame_savePosition;
 		-- save watchers
@@ -448,7 +452,7 @@ watch = function(what, keyname)
 		end
 		-- OnLoad?
 		WatchFrame_onActivate(frame, load, keyname);
-		id = id+1;
+		updateframe:Show();
 		return frame;
 	end
 end
@@ -462,11 +466,19 @@ unwatch = function(id)
 	end
 	id = tonumber(id);
 	if id and watchers[id] then
-		tinsert(framebuffer, watchers[id]);
-		watchers[id]:Hide();
-		watchers[id] = nil;
-		-- unsave watchers
-		SavedWatchers[id] = nil;
+		local watcher = tremove(watchers, id);
+		watcher:Hide();
+		tinsert(framebuffer, watcher);
+		tremove(SavedWatchers, id);
+		tremove(SavedWatchersPos, id);
+		-- update ids of other watchers
+		for k,watcher in pairs(watchers) do
+			watcher.id = k;
+			watcher.TitleRegionID:SetText(k);
+		end
+	end
+	if #watchers == 0 then
+		updateframe:Hide();
 	end
 end
 
@@ -494,3 +506,29 @@ SlashCmdList["UNWATCH"] = unwatch;
 SLASH_UNWATCH1 = "/unwatch";
 SlashCmdList["REWATCH"] = rewatch;
 SLASH_REWATCH1 = "/rewatch";
+
+updateframe = CreateFrame("frame");
+updateframe:EnableMouse(false);
+updateframe:Hide();
+local updateframepos = 1;
+local updateframedt = 0;
+local updatedtmin = 0.5;
+updateframe:SetScript("OnUpdate", function(self, elapsed)
+	if updateframedt < updatedtmin then
+		updateframedt = updateframedt+elapsed;
+		return;
+	end
+	
+	if updateframepos > #watchers then
+		updateframepos = 1;
+		updateframedt = 0;
+		return;
+	end
+	
+	if watchers[updateframepos] then
+		WatchFrame_onEvent(watchers[updateframepos], "UPDATE");
+	else
+		self:Hide(); -- we assume there's nothing to update then
+	end
+	updateframepos = updateframepos+1;
+end);
