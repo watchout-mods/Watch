@@ -118,8 +118,9 @@
 						end
 					</OnMouseWheel>
 					<OnSizeChanged>
+						-- OnSizeChanged(self, w, h)
 						if self:GetScrollChild() then
-							self:GetScrollChild():SetWidth(arg1);
+							self:GetScrollChild():SetWidth(w);
 						end
 					</OnSizeChanged>
 				</Scripts>
