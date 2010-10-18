@@ -1,7 +1,7 @@
-## Interface: 30300
-## Title: !Watch
+## Interface: 40000
+## Title: Watch
 ## Version: @project-version@
-## Notes: Watches a (global) variable
+## Notes: Continuously evaluates and displays the contents of a variable or the result of an expression
 ## Author: watchout @ Curseforge
 ## SavedVariablesPerCharacter: SavedWatchers, SavedWatchersPos
 ## Dependencies: 
