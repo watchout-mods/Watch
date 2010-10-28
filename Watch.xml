@@ -105,7 +105,7 @@
 							local pos = self:GetVerticalScroll();
 							local sch = self:GetScrollChild():GetRegions():GetHeight();
 							local sfh = self:GetHeight();
-							pos = pos - 20*delta;
+							pos = pos - 50*delta;
 							
 							if pos > sch-sfh then
 								pos = sch-sfh;
