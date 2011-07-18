@@ -8,6 +8,7 @@ local safefuncs = {
 	["AtBottom"] = true,
 	["AtTop"] = true,
 	["CanNonSpaceWrap"] = true,
+	["CanChangeProtectedState"] = true,
 	["CanSaveTabardNow"] = true,
 	["GetAlpha"] = true,
 	["GetAltArrowKeyMode"] = true,
