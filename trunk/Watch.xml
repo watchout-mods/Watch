@@ -4,7 +4,7 @@
 ..\FrameXML\UI.xsd">
 	<Frame name="WatchFrameDropDownMenu" inherits="UIDropDownMenuTemplate"/>
 
-	<Button name="WatchFrameTemplate" virtual="true" enableMouse="true"
+	<Frame name="WatchFrameTemplate" virtual="true" enableMouse="true"
 			resizable="true" movable="true" clampedToScreen="true">
 		<Anchors>
 			<Anchor point="CENTER" />
@@ -182,13 +182,14 @@
 		</Backdrop>
 		<Scripts>
 			<OnLoad>
-				local c = TOOLTIP_DEFAULT_COLOR;
+				local c;
+				c = TOOLTIP_DEFAULT_COLOR;
 				self:SetBackdropBorderColor(c.r, c.g, c.b);
 				c = TOOLTIP_DEFAULT_BACKGROUND_COLOR;
 				self:SetBackdropColor(c.r, c.g, c.b);
 			</OnLoad>
 		</Scripts>
-	</Button>
+	</Frame>
 
 </Ui>
 
