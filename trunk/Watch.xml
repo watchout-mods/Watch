@@ -188,6 +188,9 @@
 				c = TOOLTIP_DEFAULT_BACKGROUND_COLOR;
 				self:SetBackdropColor(c.r, c.g, c.b);
 			</OnLoad>
+			<OnSizeChanged>
+				self:savePosition();
+			</OnSizeChanged>
 		</Scripts>
 	</Frame>
 
