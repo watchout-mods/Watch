@@ -4,6 +4,8 @@
 	  watching for this
 ]]
 
+local MAJOR = "Watch";
+
 local safefuncs = {
 	["AtBottom"] = true,
 	["AtTop"] = true,
@@ -191,6 +193,15 @@ gw = watchers;
 local watch, unwatch, rewatch, toFancyString;
 local updateframe;
 
+padnum = function(padchar, value, digits)
+	local sv = tostring(value);
+	for i=#sv, digits-1, 1 do
+		sv = padchar..sv;
+	end
+	
+	return sv;
+end
+
 local toColorString = function(value)
 	local vt = type(value);
 	local retval;
@@ -265,10 +276,24 @@ toFancyString = function(watchstring, r, rt, nodescend)
 		t = t..tostring(r).."|n"..strjoin("|n", unpack(tbl));
 	elseif rt == "list" then
 		local tbl = {};
-		for k,v in ipairs(r) do
+		local gapsense = {};
+		for k,v in pairs(r) do
 			tinsert(keys, k);
-			tinsert(tbl, toColorString(v));
+			tinsert(gapsense, k);
+			tinsert(tbl, "<!-- "..padnum("0",k,3).." -->"..toColorString(v));
 		end
+		sort(gapsense);
+		local lastv = 0;
+		for k,v in ipairs(gapsense) do
+			if lastv+1 ~= v then
+				for i=lastv+1, v-1, 1 do
+					tinsert(keys, i);
+					tinsert(tbl, "<!-- "..padnum("0",i,3).." -->"..toColorString(nil));
+				end
+			end
+			lastv = v;
+		end
+		sort(tbl);
 		t = t..strjoin(", ", unpack(tbl));
 	else
 		t = t..toColorString(r);
@@ -456,6 +481,9 @@ watch = function(what, keyname)
 		end
 		-- OnLoad?
 		WatchFrame_onActivate(frame, load, keyname);
+		frame:SetWidth(250);
+		frame:SetHeight(250);
+		frame:savePosition();
 		updateframe:Show();
 		return frame;
 	end
