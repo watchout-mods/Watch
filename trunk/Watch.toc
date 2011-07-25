@@ -6,9 +6,7 @@
 ## SavedVariablesPerCharacter: SavedWatchers, SavedWatchersPos
 ## Dependencies: 
 ## OptionalDeps: 
-## LoadManagers: AddonLoader, LoadIT
 ## X-Keywords: development
-## X-LoadOn-Always: delayed
 
 Watch.xml
 Watch.lua
