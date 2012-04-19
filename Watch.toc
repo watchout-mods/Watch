@@ -1,4 +1,4 @@
-## Interface: 40200
+## Interface: 40300
 ## Title: Watch
 ## Version: @project-version@
 ## Notes: Continuously evaluates and displays the contents of a variable or the result of an expression
