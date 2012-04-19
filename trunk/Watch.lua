@@ -1,7 +1,9 @@
 --[[ TODO:
 	* Watch changes to return values (color changed items red)
-	* Make table indexes click-able, clicking a table index opens a new watcher
-	  watching for this
+	** For this, I need line-based rendering instead of putting everything in a
+	   html container.
+	* hierarchy-based safe-funcs
+	* 
 ]]
 
 local MAJOR = "Watch";
@@ -145,6 +147,7 @@ local safefuncs = {
 	["GetThumbTexture"] = true,
 	["GetTimeVisible"] = true,
 	["GetTitleRegion"] = true,
+	["GetSize"] = true,
 	["GetTop"] = true,
 	["GetUnit"] = true,
 	["GetValue"] = true,
@@ -241,6 +244,13 @@ toFancyString = function(watchstring, r, rt, nodescend)
 	local t = "";
 	local keys = {};
 	
+	-- functions returning a single value get special treatment
+	-- todo: current method would result in discarding values if function
+	--       returns nil as 1st or 2nd return value.
+	-- todo: use for ... pairs(...) with sticky max value for key to
+	--       find out the real size. This could also be used further down
+	--       to create a simple for i=1, max, 1 do loop, discarding all the
+	--       gapsense shit.
 	if rt == "list" and #r <= 1 then
 		r = r[1];
 		rt = type(r);
@@ -275,6 +285,9 @@ toFancyString = function(watchstring, r, rt, nodescend)
 		sort(tbl);
 		t = t..tostring(r).."|n"..strjoin("|n", unpack(tbl));
 	elseif rt == "list" then
+		-- TODO: use
+		-- local n = select('#', ...)
+		-- 
 		local tbl = {};
 		local gapsense = {};
 		for k,v in pairs(r) do
@@ -538,6 +551,9 @@ SlashCmdList["UNWATCH"] = unwatch;
 SLASH_UNWATCH1 = "/unwatch";
 SlashCmdList["REWATCH"] = rewatch;
 SLASH_REWATCH1 = "/rewatch";
+SlashCmdList["WATCH_PRINT"] = watch_print;
+SLASH_WATCH_PRINT1 = "/print";
+
 
 updateframe = CreateFrame("frame");
 updateframe:EnableMouse(false);
