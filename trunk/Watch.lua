@@ -211,7 +211,7 @@ local toColorString = function(value)
 	if vt == "table" and type(rawget(value, 0)) == "userdata" and type(value.GetObjectType) == "function" then
 		retval = value:GetObjectType()..":"..(value:GetName() or "(anon)");
 	elseif vt == "string" then
-		retval = "|cFF007700\""..value.."\"|r";
+		retval = "|cFF007700\""..value:gsub("\n","|n").."\"|r";
 	elseif vt == "number" then
 		retval = "|cFFFF00FF"..value.."|r";
 	elseif vt == "function" then
