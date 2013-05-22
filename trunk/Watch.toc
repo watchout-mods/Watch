@@ -1,4 +1,4 @@
-## Interface: 50001
+## Interface: 50300
 ## Title: Watch
 ## Version: @project-version@
 ## Notes: Continuously evaluates and displays the contents of a variable or the result of an expression
