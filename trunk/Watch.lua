@@ -313,6 +313,3 @@ end
 
 -- Make add-on accessible as a global variable
 _G.Watch = Addon.API;
-
--- DEBUG
-_G.Watchers = Watchers
