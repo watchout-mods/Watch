@@ -9,7 +9,6 @@
 ## X-Keywords: development
 
 Safe-Methods.lua
-Watch.xml
 Watch.lua
 WatchFrame.xml
 WatchFrame.lua
