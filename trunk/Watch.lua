@@ -13,177 +13,28 @@
 
 local MAJOR, Addon = ...;
 
+Addon.API = {} -- Table for public add-on API
+
+-- Localise tables
+local Safe_Methods = Addon.Safe_Methods;
+
 -- Global-to-file variables
-local Updater_Frame, Safe_Methods;
+local Updater_Frame;
 local Frame_Buffer, Watchers = {}, {};
 local watchcase = [[
 	return {%s};
 ]];
 
 -- Global-to-file functions
-local watch, unwatch, rewatch, pad_num, color_string, fancy_string
+local watch, unwatch, rewatch, pad_num, color_string
 
 -- localised globals
-local pairs, tremove, max, gsub
-    = pairs, tremove, max, gsub;
+local pcall, pairs, tremove, gsub, tostring, format
+    = pcall, pairs, tremove, gsub, tostring, format;
 
 -- Saved-variables init
 SavedWatchers = {};
 SavedWatchersPos = {};
-
-
--- ######## ########     ###    ##     ## ########        ###    ########  ####
--- ##       ##     ##   ## ##   ###   ### ##             ## ##   ##     ##  ##
--- ##       ##     ##  ##   ##  #### #### ##            ##   ##  ##     ##  ##
--- ######   ########  ##     ## ## ### ## ######       ##     ## ########   ##
--- ##       ##   ##   ######### ##     ## ##           ######### ##         ##
--- ##       ##    ##  ##     ## ##     ## ##           ##     ## ##         ##
--- ##       ##     ## ##     ## ##     ## ########     ##     ## ##        ####
-
-local dropdownconfig = { {
-		text = "disable watcher", -- string. This is the text to put on this menu item.
-		func = function(self)
-			local f = (select(2, self:GetParent():GetPoint()));
-			unwatch(f.id);
-		end, -- function. This is the function that will fire when you click on this menu item.
-	}, {
-		text = "",
-		disabled = true,
-	}, {
-		text = "Show safe items only",
-		disabled = true,
-		func = function(...) return; end,
-	}, {
-		text = "set interval",
-		disabled = true,
-		func = function(...) return; end,
-	}, {
-		text = "set events",
-		disabled = true,
-		func = function(...) return; end,
-	}, {
-		text = "Automatic Refresh",
-		disabled = true,
-		checked = true,
-		func = function(...) return; end,
-	}, {
-		text = "Update",
-		disabled = true,
-		func = function(self)
-		end,
-	},
-}
-
-local WatchFrame_savePosition = function(self)
-	local p = SavedWatchersPos[self.id];
-	if p then
-		p[1], p[2], p[3], p[4] = self:GetRect();
-	end
-end
-
-local WatchFrame_onEvent = function(self, event)
-	--print("Watch", "update");
-	local ok, value = pcall(self.Watch);
-	if not ok then
-		self.SimpleHTML:SetText("|cFFFF0000ERROR"..value.."|r");
-	else
-		local s, keys = fancy_string(self.WatchString, value, "list");
-		self.SimpleHTML:SetText("<html><body><p>"..s.."</p></body></html>");
-		self.LinkKeys = keys
-	end
-end
-
-local WatchFrame_onUpdate = function(self, elapsed)
-	if self.elapsed > .9 then
-		self.elapsed = 0;
-		WatchFrame_onEvent(self, "UPDATE");
-	end
-	
-	--print(elapsed);
-	self.elapsed = self.elapsed + elapsed;
-end
-
-local WatchFrame_onMouseDown = function(self, button)
-	if button ~= "RightButton" then
-		self.IsDragging = true;
-		self:StartMoving();
-	end
-end
-
-local WatchFrame_onMouseUp = function(self, button)
-	if self.IsDragging then
-		self:StopMovingOrSizing();
-		self.IsDragging = false;
-		self:savePosition();
-	elseif button == "RightButton" then
-		EasyMenu(dropdownconfig, WatchFrameDropDownMenu, "cursor", 0, -10, "MENU", 10);
-	end
-end
-
-local WatchFrameScrollframe_onMouseDown = function(self, button)
-	if IsControlKeyDown() then
-		WatchFrame_onMouseDown(self:GetParent(), button);
-	end
-end
-
-local WatchFrameScrollframe_onMouseUp = function(self, button)
-	WatchFrame_onMouseUp(self:GetParent(), button);
-end
-
-local WatchFrameSimpleHTML_onMouseDown = function(self, button)
-	if IsControlKeyDown() then
-		WatchFrame_onMouseDown(self:GetParent():GetParent(), button);
-	end
-end
-
-local WatchFrameSimpleHTML_onMouseUp = function(self, button)
-	WatchFrame_onMouseUp(self:GetParent():GetParent(), button);
-end
-
-local WatchFrameSimpleHTML_onHyperlink = function(self, key)
-	key = tonumber(key);
-	local top = self:GetParent():GetParent();
-	local keyval = top.LinkKeys[key];
-	--print("WatchFrame_onHyperlink", #top.LinkKeys, key, keyval);
-	if key and keyval then
-		local kt = type(keyval);
-		if kt == "string" then
-			watch(top.WatchString.."[\""..keyval.."\"]");
-		elseif kt == "number" then
-			watch(top.WatchString.."["..keyval.."]");
-		else
-			watch(top.Watch()[1][keyval], top.WatchString.."["..tostring(keyval).."]");
-		end
-	end
-end
-
-local WatchFrame_unwatch = function(self)
-	unwatch(self.id);
-end
-
-local WatchFrame_onActivate = function(self, input, inputstring)
-	self.elapsed = 0;
-	self.Watch = input;
-	self.WatchString = inputstring;
-	self.Unwatch = WatchFrame_unwatch;
-	self.TitleRegion = select(3, self:GetRegions());
-	self.TitleRegion:SetText(inputstring);
-	self.TitleRegionID = select(4, self:GetRegions());
-	self.TitleRegionID:SetText(tostring(self.id));
-	self:SetScript("OnEvent", WatchFrame_onEvent);
-	--self:SetScript("OnUpdate", WatchFrame_onUpdate);
-	self:SetScript("OnClick", nil);
-	self:SetScript("OnMouseDown", WatchFrame_onMouseDown);
-	self:SetScript("OnMouseUp", WatchFrame_onMouseUp);
-	self.SimpleHTML:SetScript("OnHyperlinkClick", WatchFrameSimpleHTML_onHyperlink);
-	self.Scrollframe:SetScript("OnMouseDown", WatchFrameScrollframe_onMouseDown);
-	self.Scrollframe:SetScript("OnMouseUp",   WatchFrameScrollframe_onMouseUp);
-	self:RegisterForClicks("AnyUp", "AnyDown");
-	self:Show();
-	self:SetToplevel(true);
-	WatchFrame_onEvent(self, "UPDATE");
-end
-
 
 --    ###    ########  ########   #######  ##    ##        ###    ########  ####
 --   ## ##   ##     ## ##     ## ##     ## ###   ##       ## ##   ##     ##  ##
@@ -194,40 +45,44 @@ end
 -- ##     ## ########  ########   #######  ##    ##     ##     ## ##        ####
 
 -- Make the call Addon(...) possible
-Addon = setmetatable(Addon, {__call = function(self, ...) return watch(...) end});
+Addon.API = setmetatable(Addon.API, {__call = function(self, ...) return watch(...) end});
 
-function Addon.watch(what, keyname)
-	print(what, keyname);
+function Addon.API.watch(what, keyname)
+	--print(what, keyname);
 	if what then
 		local load;
 		if type(what) == "string" then
-			load = loadstring(watchcase:format(what), "Watched expression: '"..what.."'");
+			load = loadstring(format(watchcase, what), "Watched expression: '"..what.."'");
 			keyname = what;
 		else
 			load = function() return {what} end;
 			keyname = keyname or "(unknown)";
 		end
-		local frame = tremove(Frame_Buffer) or CreateFrame("Button", nil, UIParent, "WatchFrameTemplate");
+		local id = #Watchers+1;
+		local frame = Addon.GetFrame(id, load, keyname);
 		tinsert(Watchers, frame);
-		local id = #Watchers;
-		frame.id = id;
-		frame.savePosition = WatchFrame_savePosition;
 		-- save Watchers
 		if type(what) == "string" then -- only if watching a string - for now
 			SavedWatchers[id] = what;
 			SavedWatchersPos[id] = {};
+		else
+			SavedWatchers[id] = false;
+			SavedWatchersPos[id] = false;
 		end
 		-- OnLoad?
-		WatchFrame_onActivate(frame, load, keyname);
 		frame:SetWidth(250);
 		frame:SetHeight(250);
-		frame:savePosition();
+		frame:SavePosition();
 		Updater_Frame:Show();
 		return frame;
+	else
+		local e = format("Error: %s is not a valid watch expression", tostring(what))
+		print(e)
+		return false, e
 	end
 end
 
-function Addon.unwatch(id)
+function Addon.API.unwatch(id)
 	if strmatch(id, "%s*ALL%s*") then
 		for k,v in pairs(Watchers) do
 			unwatch(k);
@@ -243,8 +98,8 @@ function Addon.unwatch(id)
 		tremove(SavedWatchersPos, id);
 		-- update ids of other Watchers
 		for k,watcher in pairs(Watchers) do
-			watcher.id = k;
-			watcher.TitleRegionID:SetText(k);
+			watcher.Id = k;
+			watcher.TitleID:SetText(k);
 		end
 	end
 	if #Watchers == 0 then
@@ -252,7 +107,7 @@ function Addon.unwatch(id)
 	end
 end
 
-function Addon.rewatch()
+function Addon.API.rewatch()
 	local sw = SavedWatchers;
 	local swp = SavedWatchersPos;
 	SavedWatchers = {};
@@ -265,19 +120,19 @@ function Addon.rewatch()
 			f:SetPoint("BOTTOMLEFT", p[1], p[2])
 			f:SetWidth(p[3]);
 			f:SetHeight(p[4]);
-			f:savePosition();
+			f:SavePosition();
 		end
 	end
 end
 
-function Addon.getWatchers()
+function Addon.API.getWatchers()
 	return Watchers;
 end
 
 -- assign addon-api locally
-watch = Addon.watch
-unwatch = Addon.unwatch
-rewatch = Addon.rewatch
+watch = Addon.API.watch
+unwatch = Addon.API.unwatch
+rewatch = Addon.API.rewatch
 
 --
 -- ######## ##     ## ##    ##  ######  ######## ####  #######  ##    ##  ######
@@ -307,7 +162,11 @@ color_string = function(value)
 	local vt = type(value);
 	local retval;
 	if vt == "table" and type(rawget(value, 0)) == "userdata" and type(value.GetObjectType) == "function" then
-		retval = value:GetObjectType()..":"..(value:GetName() or "(anon)");
+		if value.IsForbidden and value:IsForbidden() then
+			retval = "|cFFFF0000Forbidden|r"..":"..tostring(value or "(anon)");
+		else
+			retval = value:GetObjectType()..":"..(value:GetName() or "(anon)");
+		end
 	elseif vt == "string" then
 		retval = "|cFF007700\""..value:gsub("\n","|n").."\"|r";
 	elseif vt == "number" then
@@ -333,15 +192,11 @@ color_string = function(value)
 	return retval;
 end
 
-key_link = function(key, keynum)
-	return "<a href=\""..keynum.."\">"..color_string(key).."</a>";
-end
-
-
-fancy_string = function(watchstring, r, rt, nodescend)
+function Addon.Highlight(watchstring, r, rt, nodescend)
 	local rt = rt or type(r);
 	local t = "";
 	local keys = {};
+	local drilldown = {};
 	
 	-- functions returning a single value get special treatment
 	-- todo: current method would result in discarding values if function
@@ -359,7 +214,7 @@ fancy_string = function(watchstring, r, rt, nodescend)
 		-- the <!-- "..k.." --> part is for correct sorting
 		for k,v in pairs(r) do
 			tinsert(keys, k);
-			tinsert(tbl, "  <!-- "..tostring(k).." -->["..key_link(k, #keys).."] = "..color_string(v));
+			tbl[k] = "["..color_string(k).."] = "..color_string(v)
 		end
 		-- ui object?
 		if type(rawget(r, 0)) == "userdata" and type(r.GetObjectType) == "function" then
@@ -368,51 +223,42 @@ fancy_string = function(watchstring, r, rt, nodescend)
 				local rv;
 				-- make safe functions clickable and directly show their return value
 				if type(v) == "function" and Safe_Methods[k] then
-					rv = fancy_string(watchstring, { v(r) }, "list", true);
-					--print(v(r));
-					tinsert(tbl,"  <!-- "..tostring(k).." -->["..key_link(k,#keys).."] = "..rv);
-				-- make unsafe functions un-clickable
+					rv = Addon.Highlight(watchstring, {v(r)}, "list", true)[1] or color_string(nil);
 				elseif type(v) == "function" then
+					drilldown[k] = false;
 					rv = color_string(v);
-					tinsert(tbl,"  <!-- "..tostring(k).." -->["..color_string(k).."] = "..rv);
 				else
+					drilldown[k] = "function";
 					rv = color_string(v);
-					tinsert(tbl,"  <!-- "..tostring(k).." -->["..key_link(k,#keys).."] = "..rv);
 				end
+				tbl[k] = "["..color_string(k).."] = "..rv;
 			end
 		end
-		sort(tbl);
-		t = t..tostring(r).."|n"..strjoin("|n", unpack(tbl));
+		sort(keys, function(A, B)
+			return tostring(A) < tostring(B);
+		end);
+		t = tbl;
+		--t = t..tostring(r).."|n"..strjoin("|n", unpack(tbl));
 	elseif rt == "list" then
-		-- TODO: use
-		-- local n = select('#', ...)
-		-- 
 		local tbl = {};
-		local gapsense = {};
+		local mx = 0;
 		for k,v in pairs(r) do
-			tinsert(keys, k);
-			tinsert(gapsense, k);
-			tinsert(tbl, "<!-- "..pad_num("0",k,3).." -->"..color_string(v));
+			if mx < k then mx = k end
 		end
-		sort(gapsense);
-		local lastv = 0;
-		for k,v in ipairs(gapsense) do
-			if lastv+1 ~= v then
-				for i=lastv+1, v-1, 1 do
-					tinsert(keys, i);
-					tinsert(tbl, "<!-- "..pad_num("0",i,3).." -->"..color_string(nil));
-				end
-			end
-			lastv = v;
+		for k=1, mx do
+			tbl[k] = color_string(r[k])
 		end
-		sort(tbl);
-		t = t..strjoin(", ", unpack(tbl));
+		keys[1] = 1
+		drilldown[1] = false;
+		t = {t..strjoin(", ", unpack(tbl))};
 	else
-		t = t..color_string(r);
+		keys[1] = 1
+		drilldown[1] = false;
+		t = {t..color_string(r)};
 	end
 	
-	return t, keys;
-end;
+	return t, keys, drilldown;
+end
 
 --    ###    ########  ########   #######  ##    ##    #### ##    ## #### ########
 --   ## ##   ##     ## ##     ## ##     ## ###   ##     ##  ###   ##  ##     ##
@@ -450,205 +296,23 @@ do -- Set up global update frame (spread watcher evaluations across game-frames)
 		end
 		
 		if Watchers[update_pos] then
-			WatchFrame_onEvent(Watchers[update_pos], "UPDATE");
+			Watchers[update_pos]:Update("UPDATE");
 		end
 		update_pos = update_pos+1;
 	end);
-end
-
--- Create an Ace-Addon if Ace-Addon is in environment:
-if LibStub and LibStub("AceAddon-3.0") then
-	LibStub("AceAddon-3.0"):NewAddon(Addon, MAJOR);
+	
+	-- Create an Ace-Addon if Ace-Addon is in environment:
+	Updater_Frame:SetScript("OnEvent", function()
+		if LibStub and LibStub("AceAddon-3.0") then
+			LibStub("AceAddon-3.0"):NewAddon(Addon.API, MAJOR);
+			Updater_Frame:UnregisterEvent("ADDON_LOADED");
+		end
+	end);
+	Updater_Frame:RegisterEvent("ADDON_LOADED");
 end
 
 -- Make add-on accessible as a global variable
-_G.Watch = Addon
+_G.Watch = Addon.API;
 
---  ######     ###    ######## ########     ######## ##    ##  ######   ######
--- ##    ##   ## ##   ##       ##           ##       ###   ## ##    ## ##    ##
--- ##        ##   ##  ##       ##           ##       ####  ## ##       ##
---  ######  ##     ## ######   ######       ######   ## ## ## ##        ######
---       ## ######### ##       ##           ##       ##  #### ##             ##
--- ##    ## ##     ## ##       ##           ##       ##   ### ##    ## ##    ##
---  ######  ##     ## ##       ########     ##       ##    ##  ######   ######
-
-Safe_Methods = {
-	["AtBottom"] = true,
-	["AtTop"] = true,
-	["CanNonSpaceWrap"] = true,
-	["CanChangeProtectedState"] = true,
-	["CanSaveTabardNow"] = true,
-	["GetAlpha"] = true,
-	["GetAltArrowKeyMode"] = true,
-	["GetAnchorType"] = true,
-	["GetAnimations"] = true,
-	["GetAnimationGroups"] = true,
-	["GetBackdrop"] = true,
-	["GetBackdropBorderColor"] = true,
-	["GetBackdropColor"] = true,
-	["GetBlendMode"] = true,
-	["GetBlinkSpeed"] = true,
-	["GetBottom"] = true,
-	["GetButtonState"] = true,
-	["GetCenter"] = true,
-	["GetChange"] = true,
-	["GetChecked"] = true,
-	["GetCheckedTexture"] = true,
-	["GetChildren"] = true,
-	["GetClampRectInsets"] = true,
-	["GetColorHSV"] = true,
-	["GetColorRGB"] = true,
-	["GetColorValueTexture"] = true,
-	["GetColorValueThumbTexture"] = true,
-	["GetColorWheelTexture"] = true,
-	["GetColorWheelThumbTexture"] = true,
-	["GetCurrentLine"] = true,
-	["GetCurrentScroll"] = true,
-	["GetCursorPosition"] = true,
-	["GetDegrees"] = true,
-	["GetDepth"] = true,
-	["GetDisabledCheckedTexture"] = true,
-	["GetDisabledFontObject"] = true,
-	["GetDisabledTexture"] = true,
-	["GetDrawLayer"] = true,
-	["GetDuration"] = true,
-	["GetEffectiveAlpha"] = true,
-	["GetEffectiveDepth"] = true,
-	["GetEffectiveScale"] = true,
-	["GetElapsed"] = true,
-	["GetEndDelay"] = true,
-	["GetFacing"] = true,
-	["GetFadeDuration"] = true,
-	["GetFading"] = true,
-	["GetFogColor"] = true,
-	["GetFogFar"] = true,
-	["GetFogNear"] = true,
-	["GetFont"] = true,
-	["GetFontObject"] = true,
-	["GetFontString"] = true,
-	["GetFrameLevel"] = true,
-	["GetFrameStrata"] = true,
-	["GetFrameType"] = true,
-	["GetHeight"] = true,
-	["GetHighlightFontObject"] = true,
-	["GetHighlightTexture"] = true,
-	["GetHistoryLines"] = true,
-	["GetHitRectInsets"] = true,
-	["GetHorizontalScroll"] = true,
-	["GetHorizontalScrollRange"] = true,
-	["GetHyperlinkFormat"] = true,
-	["GetHyperlinksEnabled"] = true,
-	["GetID"] = true,
-	["GetInitialOffset"] = true,
-	["GetInputLanguage"] = true,
-	["GetInsertMode"] = true,
-	["GetItem"] = true,
-	["GetJustifyH"] = true,
-	["GetJustifyV"] = true,
-	["GetLeft"] = true,
-	["GetLight"] = true,
-	["GetLooping"] = true,
-	["GetLoopState"] = true,
-	["GetMaxBytes"] = true,
-	["GetMaxFramerate"] = true,
-	["GetMaxLetters"] = true,
-	["GetMaxLines"] = true,
-	["GetMaxOrder"] = true,
-	["GetMaxResize"] = true,
-	["GetMinimumWidth"] = true,
-	["GetMinMaxValues"] = true,
-	["GetMinResize"] = true,
-	["GetModel"] = true,
-	["GetModelScale"] = true,
-	["GetName"] = true,
-	["GetNormalFontObject"] = true,
-	["GetNormalTexture"] = true,
-	["GetNumber"] = true,
-	["GetNumChildren"] = true,
-	["GetNumLetters"] = true,
-	["GetNumLinesDisplayed"] = true,
-	["GetNumMessages"] = true,
-	["GetNumPoints"] = true,
-	["GetNumRegions"] = true,
-	["GetObjectType"] = true,
-	["GetOffset"] = true,
-	["GetOrder"] = true,
-	["GetOrientation"] = true,
-	["GetOrigin"] = true,
-	["GetOwner"] = true,
-	["GetParent"] = true,
-	["GetPingPosition"] = true,
-	["GetPoint"] = true,
-	["GetPosition"] = true,
-	["GetProgress"] = true,
-	["GetProgressWithDelay"] = true,
-	["GetPushedTextOffset"] = true,
-	["GetPushedTexture"] = true,
-	["GetRadians"] = true,
-	["GetRect"] = true,
-	["GetRegionParent"] = true,
-	["GetRegions"] = true,
-	["GetRight"] = true,
-	["GetScale"] = true,
-	["GetShadowColor"] = true,
-	["GetShadowOffset"] = true,
-	["GetSmoothing"] = true,
-	["GetSmoothProgress"] = true,
-	["GetSpacing"] = true,
-	["GetSpell"] = true,
-	["GetStartDelay"] = true,
-	["GetStatusBarTexture"] = true,
-	["GetStringHeight"] = true,
-	["GetStringWidth"] = true,
-	["GetTexCoord"] = true,
-	["GetTexCoordModifiesRect"] = true,
-	["GetText"] = true,
-	["GetTextColor"] = true,
-	["GetTextHeight"] = true,
-	["GetTextInsets"] = true,
-	["GetTexture"] = true,
-	["GetTextWidth"] = true,
-	["GetThumbTexture"] = true,
-	["GetTimeVisible"] = true,
-	["GetTitleRegion"] = true,
-	["GetSize"] = true,
-	["GetTop"] = true,
-	["GetUnit"] = true,
-	["GetValue"] = true,
-	["GetValueStep"] = true,
-	["GetVertexColor"] = true,
-	["GetVerticalScroll"] = true,
-	["GetVerticalScrollRange"] = true,
-	["GetWidth"] = true,
-	["GetZoom"] = true,
-	["GetZoomLevels"] = true,
-	["IsAutoFocus"] = true,
-	["IsClampedToScreen"] = true,
-	["IsDelaying"] = true,
-	["IsDesaturated"] = true,
-	["IsDone"] = true,
-	["IsDone"] = true,
-	["IsDragging"] = true,
-	["IsEnabled"] = true,
-	["IsEnabled"] = true,
-	["IsIgnoringDepth"] = true,
-	["IsKeyboardEnabled"] = true,
-	["IsMouseEnabled"] = true,
-	["IsMouseWheelEnabled"] = true,
-	["IsMovable"] = true,
-	["IsMultiLine"] = true,
-	["IsNumeric"] = true,
-	["IsPassword"] = true,
-	["IsPaused"] = true,
-	["IsPaused"] = true,
-	["IsPlaying"] = true,
-	["IsPlaying"] = true,
-	["IsProtected"] = true,
-	["IsResizable"] = true,
-	["IsShown"] = true,
-	["IsStopped"] = true,
-	["IsToplevel"] = true,
-	["IsUserPlaced"] = true,
-	["IsVisible"] = true,
-	["NumLines"] = true,
-}
+-- DEBUG
+_G.Watchers = Watchers
