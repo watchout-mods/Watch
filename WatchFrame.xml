@@ -6,12 +6,12 @@
 	<Font name="Watch2Font" inherits="GameFontNormal" justifyH="LEFT"/>
 
 	<Button name="Watch2BtnTemplate" virtual="true">
-		<Size><AbsDimension y="15" x="200" /></Size>
+		<Size x="200" y="15" />
 		<Anchors>
 			<Anchor point="TOPLEFT" />
 			<Anchor point="TOPRIGHT" />
 		</Anchors>
-		<NormalFont style="Watch2Font" />
+		<ButtonText inherits="Watch2Font" maxLines="1" justifyH="LEFT" />
 		<Scripts>
 			<OnLoad>
 				--self:SetWidth(self:GetParent():GetWidth());
@@ -60,7 +60,8 @@
 		<Scripts>
 			<OnValueChanged function="HybridScrollFrame_OnValueChanged"/>
 		</Scripts>
-		<ThumbTexture name="$parentThumbTexture" inherits="HybridScrollBarButton" file="Interface\Buttons\UI-ScrollBar-Knob" parentKey="thumbTexture">
+		<ThumbTexture name="$parentThumbTexture" inherits="HybridScrollBarButton"
+				file="Interface\Buttons\UI-ScrollBar-Knob" parentKey="thumbTexture">
 			<Size x="10" y="17"/>
 			<TexCoords left="0.20" right="0.80" top="0.125" bottom="0.875"/>
 		</ThumbTexture>
