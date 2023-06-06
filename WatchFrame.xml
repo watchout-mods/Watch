@@ -6,7 +6,7 @@
 	<Font name="Watch2Font" inherits="GameFontNormal" justifyH="LEFT"/>
 
 	<Button name="Watch2BtnTemplate" virtual="true">
-		<Size x="200" y="15" />
+		<Size x="200" y="13" />
 		<Anchors>
 			<Anchor point="TOPLEFT" />
 			<Anchor point="TOPRIGHT" />
@@ -14,29 +14,11 @@
 		<ButtonText inherits="Watch2Font" maxLines="1" justifyH="LEFT" />
 		<Scripts>
 			<OnLoad>
-				--self:SetWidth(self:GetParent():GetWidth());
 				self:SetText(" ");
 			</OnLoad>
 			<OnClick>
 				local top = self:GetParent():GetParent():GetParent();
-				--print(self.Key, self.Id, self:GetText())
-				local ws = top.WatchString
-				if ws:match("[\}\"\.]$") then
-					-- string is something we have to enclose in parentheses
-					ws = "(" .. ws .. ")";
-				end
-				if self.Key then
-					local kt = type(self.Key);
-					if kt == "string" and self.Key:match("^[a-zA-Z_][a-zA-Z_0-9]+$") then
-						top.API.watch(ws.."."..self.Key);
-					elseif kt == "string" then
-						top.API.watch(ws.."[\""..self.Key.."\"]");
-					elseif kt == "number" then
-						top.API.watch(ws.."["..self.Key.."]");
-					else
-						top.API.watch(top.Watch()[1][self.Key], ws.."["..tostring(self.Key).."]");
-					end
-				end
+				top:OnLineClick(self, button);
 			</OnClick>
 		</Scripts>
 	</Button>
@@ -68,58 +50,79 @@
 	</Slider>
 
 	<Frame name="Watch2FrameTemplate" virtual="true" enableMouse="true"
-			resizable="true" movable="true" clampedToScreen="true">
+			resizable="true" movable="true" clampedToScreen="true"
+			inherits="BackdropTemplate">
 		<Anchors>
 			<Anchor point="CENTER" />
 		</Anchors>
-		<Size>
-			<AbsDimension x="200" y="200" />
-		</Size>
+		<Size x="200" y="200" />
 		<Layers>
-			<Layer level="BORDER">
+			<Layer level="ARTWORK"><!-- Header -->
 				<Texture>
 					<Anchors>
-						<Anchor point="TOPLEFT">
-							<Offset x="4" y="-4" />
-						</Anchor>
-						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
-							<Offset x="-4" y="-20" />
-						</Anchor>
+						<Anchor point="TOPLEFT" x="4" y="-4" />
+						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" x="-4" y="-21" />
 					</Anchors>
-					<Color a=".5" r=".5" g="0" b="0"/>
+					<Color a=".5" r=".35" g=".3" b=".3"/>
 				</Texture>
 			</Layer>
-			<Layer level="BORDER">
+			<Layer level="ARTWORK"><!-- Footer -->
 				<Texture>
 					<Anchors>
 						<Anchor point="TOPLEFT" relativePoint="BOTTOMLEFT">
-							<Offset x="4" y="15" />
+							<Offset x="4" y="17" />
 						</Anchor>
 						<Anchor point="BOTTOMRIGHT">
 							<Offset x="-4" y="4" />
 						</Anchor>
 					</Anchors>
-					<Color a=".5" r=".5" g="0" b="0"/>
+					<Color a=".5" r=".35" g=".3" b=".3"/>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER">
+				<!-- Border between header and scroll-area -->
+				<Texture file="Interface\Tooltips\UI-Tooltip-Border" parentKey="Spacer_Top">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativePoint="TOPLEFT">
+							<Offset x="4" y="-17" />
+						</Anchor>
+						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
+							<Offset x="-4" y="-37" />
+						</Anchor>
+					</Anchors>
+					<TexCoords left="0.8125" right="0.9375" top="1" bottom="0"/>
+				</Texture>
+				<!-- Border between header and scroll-area -->
+				<Texture file="Interface\Tooltips\UI-Tooltip-Border">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativePoint="TOPLEFT">
+							<Offset x="4" y="-17" />
+						</Anchor>
+						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
+							<Offset x="-4" y="-37" />
+						</Anchor>
+					</Anchors>
+					<TexCoords left="0.8125" right="0.9375" top="1" bottom="0"/>
 				</Texture>
 			</Layer>
 			<Layer level="ARTWORK">
 				<FontString inherits="GameFontNormal" parentKey="Title">
 					<Anchors>
 						<Anchor point="TOPLEFT">
-							<Offset x="40" y="0" />
+							<Offset x="40" y="-4" />
 						</Anchor>
 						<Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT">
 							<Offset x="-15" y="-20" />
 						</Anchor>
 					</Anchors>
 				</FontString>
-				<FontString inherits="GameFontNormal" parentKey="TitleID">
+				<FontString inherits="GameFontNormal" parentKey="TitleID" justifyH="RIGHT">
 					<Anchors>
 						<Anchor point="TOPLEFT">
-							<Offset x="0" y="0" />
+							<Offset x="0" y="-4" />
 						</Anchor>
 						<Anchor point="BOTTOMRIGHT" relativePoint="TOPLEFT">
-							<Offset x="40" y="-20" />
+							<Offset x="30" y="-20" />
 						</Anchor>
 					</Anchors>
 				</FontString>
@@ -128,21 +131,56 @@
 		<Frames>
 			<ScrollFrame inherits="HybridScrollFrameTemplate" parentKey="Scrollframe">
 				<Anchors>
-					<Anchor point="TOPLEFT"><Offset x="5" y="-20" /></Anchor>
+					<Anchor point="TOPLEFT"><Offset x="5" y="-23" /></Anchor>
 					<Anchor point="BOTTOMRIGHT"><Offset x="-15" y="15" /></Anchor>
 				</Anchors>
 				<Scripts>
 					<OnLoad>
-						HybridScrollFrame_OnLoad(self);
-						HybridScrollFrame_CreateButtons(self, "Watch2BtnTemplate",0,0,nil,nil,0,1,nil,nil);
+					HybridScrollFrame_OnLoad(self);
+
+					-- Don't use offsetY, ..._CreateButtons is broken.
+					HybridScrollFrame_CreateButtons(self,"Watch2BtnTemplate",
+						0,0, nil,nil, 0,0, nil,nil);
 					</OnLoad>
 					<OnSizeChanged>
-						-- OnSizeChanged(self, w, h)
-						HybridScrollFrame_CreateButtons(self, "Watch2BtnTemplate",0,0,nil,nil,0,1,nil,nil);
-						HybridScrollFrame_Update(self, self.buttonHeight*#(self:GetParent().Keys or {}), self.buttonHeight);
-						if self:GetScript("OnVerticalScroll") then
-							self:GetScript("OnVerticalScroll")(self, -1);
+					-- OnSizeChanged(self, w, h)
+					-- Don't use offsetY, ..._CreateButtons is broken.
+					local total = self:GetParent().NumKeys or 0;
+					if 0 >= total then return end
+
+					local floor,SB,BH = math.floor,self.scrollBar,self.buttonHeight;
+					local sbval,sbmin,sbmax = SB:GetValue(),SB:GetMinMaxValues();
+
+					HybridScrollFrame_CreateButtons(self,"Watch2BtnTemplate",
+						0,0, nil,nil, 0,0, nil,nil);
+					local totalHeight, frameHeight = BH*total, self:GetHeight();
+
+					local range = floor(totalHeight - frameHeight + 0.5);
+					if range > 0 then
+						if floor(sbval) >= floor(sbmax) then
+							SB:SetMinMaxValues(0, range)
+							if floor(SB:GetValue()) ~= floor(range) then
+								SB:SetValue(range); -- ????
+							else
+								-- If we've scrolled to the bottom, we need to recalculate the offset.
+								-- ???? Why does this branch mean it's scrolled to bottom
+								HybridScrollFrame_SetOffset(self, range);
+							end
+						else
+							SB:SetMinMaxValues(0, range)
+							SB:SetValue(sbval)
 						end
+						SB:Enable();
+						HybridScrollFrame_UpdateButtonStates(self);
+						SB:Show();
+					else
+						SB:SetValue(0);
+						SB:Hide();
+					end
+
+					self.range = range;
+					self.scrollChild:SetHeight(frameHeight);
+					self:UpdateScrollChildRect();
 					</OnSizeChanged>
 				</Scripts>
 				<Frames>
@@ -190,7 +228,7 @@
 				</Size>
 				<Scripts>
 					<OnClick>
-						self:GetParent():Unwatch();
+						self:GetParent().Watcher:Remove();
 					</OnClick>
 				</Scripts>
 				<NormalTexture file="Interface\BUTTONS\CancelButton-Up"/>
@@ -198,45 +236,16 @@
 				<HighlightTexture file="Interface\BUTTONS\CancelButton-Highlight" alphaMode="ADD"/>
 			</Button>
 		</Frames>
-		<Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
-			<EdgeSize>
-				<AbsValue val="16"/>
-			</EdgeSize>
-			<TileSize>
-				<AbsValue val="16"/>
-			</TileSize>
-			<BackgroundInsets>
-				<AbsInset left="5" right="5" top="5" bottom="5"/>
-			</BackgroundInsets>
-		</Backdrop>
 		<Scripts>
 			<OnLoad>
+				self:SetBackdrop({
+					bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+					edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+					tile = true,
+					tileSize = 16,
+					edgeSize = 16,
+					insets = { left = 4, right = 4, top = 4, bottom = 4 }
+				});
 				local c;
 				c = TOOLTIP_DEFAULT_COLOR;
 				self:SetBackdropBorderColor(c.r, c.g, c.b);
-				c = TOOLTIP_DEFAULT_BACKGROUND_COLOR;
-				self:SetBackdropColor(c.r, c.g, c.b);
-			</OnLoad>
-			<OnSizeChanged>
-				self:SavePosition();
-			</OnSizeChanged>
-			<OnMouseDown>
-				if button ~= "RightButton" then
-					self.IsDragging = true;
-					self:StartMoving();
-				end
-			</OnMouseDown>
-			<OnMouseUp>
-				if self.IsDragging then
-					self:StopMovingOrSizing();
-					self.IsDragging = false;
-					self:SavePosition();
-				elseif button == "RightButton" then
-					EasyMenu(self.DropdownConfig, Watch2FrameDropDownMenu, "cursor", 0, -10, "MENU", 10);
-					Watch2FrameDropDownMenu.Watcher = self
-				end
-			</OnMouseUp>
-		</Scripts>
-	</Frame>
-</Ui>
-

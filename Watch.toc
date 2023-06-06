@@ -1,8 +1,9 @@
-## Interface: 70000
+## Interface: 100100
 ## Title: Watch
 ## Version: @project-version@
 ## Notes: Continuously evaluates and displays the contents of a variable or the result of an expression
 ## Author: watchout @ Curseforge
+## SavedVariables: Watch_Shelves, Watch_Config
 ## SavedVariablesPerCharacter: SavedWatchers, SavedWatchersPos
 ## Dependencies: 
 ## OptionalDeps: 
@@ -12,5 +13,3 @@ Safe-Methods.lua
 Watch.lua
 WatchFrame.xml
 WatchFrame.lua
-
-Test.xml

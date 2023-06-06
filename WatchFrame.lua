@@ -1,6 +1,23 @@
 local MAJOR, Addon = ...;
 local Frame_Buffer, Empty = {}, {};
 
+local min, max = math.min, math.max;
+
+-- https://wow.gamepedia.com/Creating_simple_pop-up_dialog_boxes
+StaticPopupDialogs["Watch_StringChange"] = {
+  text = "Do you want to greet the world today?",
+  button1 = ACCEPT,
+  button2 = CANCEL,
+  hasEditBox = true,
+  timeout = 0,
+  whileDead = true,
+  hideOnEscape = true,
+
+  OnAccept = function(self, data, data2)
+      data.API.update(data.Id, self.editBox:GetText(), data.Key)
+  end,
+}
+
 local dropdownconfig = { {
 		text = "disable watcher", -- string. This is the text to put on this menu item.
 		func = function(self, ...)
@@ -37,85 +54,94 @@ local dropdownconfig = { {
 	},
 }
 
-local function WatchScrollFrame_onScroll(self, so)
-	local offset = HybridScrollFrame_GetOffset(self, self.scrollFrame);
-	local p = self:GetParent();
-	local data, keys, drill = p.Data, p.Keys, p.Drilldown;
 
-	for i=1,math.min(#self.buttons, #keys-offset) do
-		local button, key = self.buttons[i], keys[i+offset];
-		button:SetText(data[key]);
-		button.Id = i+offset;
-		if drill[key] ~= false then
-			button.Key = key;
-		else
-			button.Key = nil;
-		end
+local function WatchScrollFrame_onScroll(self, so, ...)
+	local offset = HybridScrollFrame_GetOffset(self, self.scrollFrame);
+	local Watcher = self:GetParent().Watcher;
+	local keys = Watcher:GetKeys();
+
+	-- save current scroll-position so that we can keep it when resizing
+	if so ~= -1 then -- ignore when onscroll was called from refresh
+		self.scrollpos = offset;
+	end
+
+	for i=1,min(#self.buttons, #keys-offset) do
+		local line, key = self.buttons[i], keys[i+offset];
+		line:SetText(Watcher:GetHighlightedLine(key));
+		line.Id = i+offset;
+		line.Key = key;
 	end
 	-- The following should iterate through buttons that are unused because the
 	-- number of entries is < the number of visible buttons
-	for i=#keys-offset+1,#self.buttons do
-		local button = self.buttons[i];
-		button:SetText("")
-		button.Id = i+offset;
-		button.Key = nil;
+	for i=max(1, #keys-offset+1),#self.buttons do
+		local line = self.buttons[i];
+		line:SetText("-");
+		line.Key = nil;
 	end
 end
 
-local function WatchFrame_onEvent(self, event)
-	--print("Watch", "update");
-	local ok, value = pcall(self.Watch);
-	if not ok then
-		self.Data = Empty;
-		self.Keys = Empty;
-		self.Drilldown = Empty;
-		self.Scrollframe.buttons[1]:SetText("|cFFFF0000ERROR"..value.."|r");
-	else
-		local data,keys,drill = Addon.Highlight(self.WatchString, value, "list");
-		self.Data = data or Empty;
-		self.Keys = keys or Empty;
-		self.Drilldown = drill or Empty;
+local function WatchFrame_onLineClick(self, line, mousebutton)
+	-- TODO: Handle mouse buttons and modifiers, maybe move back to .xml
+	--print(line.Key, line.Id, line:GetText())
+	if line.Key ~= nil then
+		self.Watcher:Descend(line.Key, false, true);
 	end
-
-	WatchScrollFrame_onScroll(self.Scrollframe, -1);
 end
 
-local function WatchFrame_enable(self, id, input, inputstring)
-	self.Watch = input;
-	self.WatchString = inputstring;
-	self.Id = id;
+-- Called when GUI or Data changes such that re-rendering is required
+local function WatchFrame_onEvent(self, event, ...)
+	local watcher = self.Watcher;
+	self.Title:SetText(watcher:GetTitle());
+	self.TitleID:SetText(tostring(watcher:GetId()));
 
-	self.Title:SetText(inputstring);
-	self.TitleID:SetText(tostring(self.Id));
+	local scroll = self.Scrollframe;
+	local num = watcher:GetNumKeys();
+	local bh = scroll.buttonHeight;
+	self.NumKeys = num;
+
+	HybridScrollFrame_Update(scroll, bh*num, bh);
+	WatchScrollFrame_onScroll(scroll, -1);
+end
+
+local function WatchFrame_enable(self, watcher --[[, input, inputstring]])
+	self.Watcher = watcher;
+	self.Title:SetText(watcher:GetTitle());
+	self.TitleID:SetText(tostring(watcher:GetId()));
 
 	self:Show();
 	self:SetToplevel(true);
 
+	self.Scrollframe.stepSize = 53;
+
 	WatchFrame_onEvent(self, "UPDATE");
 
-	self:SetWidth(self:GetWidth()+1);
-	self:SetWidth(self:GetWidth()-1);
+	-- self:SetWidth(self:GetWidth()+1);
+	-- self:SetWidth(self:GetWidth()-1);
+	self:SetWidth(300);
+	self:SetHeight(240);
 
-	return self
+	return self;
 end
 
 local function WatchFrame_unwatch(self)
-	Addon.API.unwatch(self.Id);
+	Addon.API.unwatch(self.Watcher:GetId());
 end
 
 local function WatchFrame_savePosition(self)
-	local p = SavedWatchersPos[self.Id];
+	local p = SavedWatchersPos[self.Watcher:GetId()];
 	if p then
 		p[1], p[2], p[3], p[4] = self:GetRect();
 	end
 end
 
-local function WatchFrame_init(self, id, input, inputstring)
+local function WatchFrame_init(self, watcher)
 	self.API = Addon.API;
 	self.Unwatch = WatchFrame_unwatch;
 	self.SavePosition = WatchFrame_savePosition;
 	self.DropdownConfig = dropdownconfig;
 	self.Update = WatchFrame_onEvent;
+	self.OnLineClick = WatchFrame_onLineClick;
+	self.Watcher = watcher;
 
 	self:SetScript("OnEvent", WatchFrame_onEvent);
 	--self:SetScript("OnClick", nil);
